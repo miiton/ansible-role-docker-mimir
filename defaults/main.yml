@@ -1,0 +1,10 @@
+---
+mimir_version: 2.1.0
+mimir_host: mimir.example.com
+mimir_storage: gcs
+mimir_storage_blocks_bucket_name: blocks.mimir.example.com
+mimir_storage_ruler_bucket_name: ruler.mimir.example.com
+mimir_multitenancy: false
+mimir_compactor_block_ranges: 2h0m0s,12h0m0s,24h0m0s
+mimir_compactor_compaction_interval: 1h
+mimir_unuse_iam: true

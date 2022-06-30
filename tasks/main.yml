@@ -1,0 +1,138 @@
+---
+- name: Create directories
+  file:
+    state: directory
+    path: "{{ item }}"
+    mode: 0755
+  with_items:
+    - /etc/mimir
+    - /opt/docker-compose-service/mimir
+
+- name: Put GCP credentials.json
+  copy:
+    src: credentials.json
+    dest: /etc/mimir/credentials.json
+    mode: 0644
+  notify: Restart mimir
+  when: mimir_unuse_iam == true and mimir_storage == "gcs"
+
+- name: Put docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: /opt/docker-compose-service/mimir/docker-compose.yml
+    mode: 0644
+  notify: Restart mimir
+
+- name: Put mimir-config.yml
+  template:
+    src: mimir-config.yml.j2
+    dest: /etc/mimir/config.yml
+  notify: Restart mimir
+
+- name: Start mimir
+  systemd:
+    name: docker-compose-service@mimir
+    enabled: yes
+    state: started
+    daemon_reload: yes
+
+# - name: Check caddy conf
+#   uri:
+#     url: http://localhost:2019/id/{{ mimir_host }}/
+#     method: GET
+#     headers:
+#       Content-Type: application/json
+#       Origin: http://localhost:2019
+#     status_code:
+#       - 200
+#       - 404
+# 
+# - name: Delete caddy conf
+#   uri:
+#     url: http://localhost:2019/id/{{ mimir_host }}/
+#     method: DELETE
+#     headers:
+#       Content-Type: application/json
+#       Origin: http://localhost:2019
+#     status_code:
+#       - 200
+#       - 404
+# 
+# - name: Update caddy
+#   uri:
+#     url: http://localhost:2019/config/apps/http/servers/{{ caddy_servername }}/routes/
+#     method: POST
+#     headers:
+#       Content-Type: application/json
+#       Origin: http://localhost:2019
+#     return_content: yes
+#     status_code: 200
+#     body_format: json
+#     body: |
+#       {
+#         "@id": "{{ mimir_host }}",
+#         "match": [
+#           {
+#             "host": [
+#               "{{ mimir_host }}"
+#             ]
+#           }
+#         ],
+#         "handle": [
+#           {
+#             "handler": "subroute",
+#             "routes": [
+#               {
+#                 "match": [
+#                   {
+#                     "header": {
+#                       "X-Scope-OrgID": [{{ mimir_org_ids }}]
+#                     },
+#                     "path": [
+#                       "/*"
+#                     ]
+#                   }
+#                 ],
+#                 "handle": [
+#                   {
+#                     "handler": "reverse_proxy",
+#                     "upstreams": [
+#                       {
+#                         "dial": "mimir:9009"
+#                       }
+#                     ]
+#                   }
+#                 ]
+#               },
+#               {
+#                 "match": [
+#                   {
+#                     "header": {
+#                       "X-Scope-OrgID": ["*"]
+#                     },
+#                     "path": [
+#                       "/*"
+#                     ]
+#                   },
+#                   {
+#                     "header": {
+#                       "X-Scope-OrgID": null
+#                     },
+#                     "path": [
+#                       "/*"
+#                     ]
+#                   }
+#                 ],
+#                 "handle": [
+#                   {
+#                     "handler": "static_response",
+#                     "status_code": "400",
+#                     "body": ":)"
+#                   }
+#                 ]
+#               }
+#             ]
+#           }
+#         ],
+#         "terminal": true
+#       }

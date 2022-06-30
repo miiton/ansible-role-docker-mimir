@@ -1,0 +1,7 @@
+---
+- name: Restart mimir
+  systemd:
+    name: docker-compose-service@mimir
+    enabled: yes
+    state: restarted
+    daemon_reload: yes

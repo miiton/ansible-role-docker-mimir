@@ -1,0 +1,65 @@
+multitenancy_enabled: {{ mimir_multitenancy }}
+
+blocks_storage:
+  backend: {{ mimir_storage }}
+{% if mimir_storage == "gcs" %}
+  gcs:
+    bucket_name: {{ mimir_storage_blocks_bucket_name }}
+{% elif mimir_storage == "s3" %}
+  s3:
+    region: {{ mimir_storage_blocks_bucket_region }}
+    bucket_name: {{ mimir_storage_blocks_bucket_name }}
+{% endif %}
+  bucket_store:
+    sync_dir: /mimir/tsdb-sync
+  filesystem:
+    dir: /mimir/data/tsdb
+  tsdb:
+    dir: /mimir/tsdb
+
+compactor:
+  block_ranges: [{{ mimir_compactor_block_ranges }}]
+  data_dir: /mimir/compactor
+  sharding_ring:
+    kvstore:
+      store: memberlist
+
+distributor:
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: memberlist
+
+ingester:
+  ring:
+    instance_addr: 127.0.0.1
+    kvstore:
+      store: memberlist
+    replication_factor: 1
+
+{% if mimir_storage == "gcs" %}
+ruler_storage:
+  backend: gcs
+  gcs:
+    bucket_name: {{ mimir_storage_ruler_bucket_name }}
+{% elif mimir_storage == "s3" %}
+ruler_storage:
+  backend: s3
+  s3:
+    region: {{ mimir_storage_blocks_bucket_region }}
+    bucket_name: {{ mimir_storage_ruler_bucket_name }}
+{% else %}
+ruler_storage:
+  backend: local
+  local:
+    directory: /mimir/rules
+{% endif %}
+
+server:
+  http_listen_port: 9009
+  log_level: info
+  log_source_ips_enabled: true
+
+store_gateway:
+  sharding_ring:
+    replication_factor: 1
